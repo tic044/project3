@@ -1,0 +1,175 @@
+import { csvParse } from 'https://cdn.jsdelivr.net/npm/d3-dsv@3/+esm';
+
+
+import * as d3 from 'https://cdn.jsdelivr.net/npm/d3@7/+esm';
+
+
+async function loadData() {
+   try {
+       const response = await fetch('./health_lifestyle_dataset.csv');
+       const csvText = await response.text();
+       const rows = csvParse(csvText);
+       return rows;
+   } catch (error) {
+       console.error('Error loading data:', error);
+   }
+
+
+}
+
+
+
+
+const data = await loadData();
+console.log(data);
+
+
+const svg = d3.select('#data')
+   .append('svg')
+   .attr('width', 800)
+   .attr('height', 640)
+
+
+const rowsWithAge = data
+   .map(d => ({ ...d, ageNum: +d.age }))
+   .filter(d => !Number.isNaN(d.ageNum));
+
+
+if (rowsWithAge.length === 0) {
+   console.warn('No numeric age values found; skipping age histogram.');
+} else {
+   const histWidth = 800;
+   const histHeight = 440; // extra space for legend
+   const margin = { top: 60, right: 20, bottom: 40, left: 50 }; // reserve top margin for legend
+   const innerWidth = histWidth - margin.left - margin.right;
+   const innerHeight = histHeight - margin.top - margin.bottom;
+
+
+   const histSvg = d3.select('#data')
+       .append('svg')
+       .attr('width', histWidth)
+       .attr('height', histHeight);
+
+
+   const g = histSvg.append('g')
+       .attr('transform', `translate(${margin.left},${margin.top})`);
+
+
+   const x = d3.scaleLinear()
+       .domain(d3.extent(rowsWithAge, d => d.ageNum))
+       .nice()
+       .range([0, innerWidth]);
+
+
+   const bins = d3.bin()
+       .domain(x.domain())
+       .thresholds(20)
+       .value(d => d.ageNum)(rowsWithAge);
+
+
+   const y = d3.scaleLinear()
+       .domain([0, d3.max(bins, d => d.length)])
+       .nice()
+       .range([innerHeight, 0]);
+
+
+   g.append('g')
+       .attr('transform', `translate(0,${innerHeight})`)
+       .call(d3.axisBottom(x));
+
+
+   g.append('g')
+       .call(d3.axisLeft(y));
+
+
+   // Compute stacked counts per bin
+   const stacked = bins.map(b => {
+       const risk0 = b.reduce((acc, row) => acc + (String(row.disease_risk) === '0' ? 1 : 0), 0);
+       const risk1 = b.length - risk0; // assume only 0/1
+       return { bin: b, risk0, risk1 };
+   });
+
+
+   const barWidth = (b) => Math.max(0, x(b.x1) - x(b.x0) - 1);
+
+
+   // Bottom segment: disease_risk = 0
+   g.selectAll('rect.risk0')
+       .data(stacked)
+       .join('rect')
+       .attr('class', 'risk0')
+       .attr('x', d => x(d.bin.x0))
+       .attr('y', d => y(d.risk0))
+       .attr('width', d => barWidth(d.bin))
+       .attr('height', d => y(0) - y(d.risk0))
+       .attr('fill', '#59a14f');
+
+
+   // Top segment: disease_risk = 1
+   g.selectAll('rect.risk1')
+       .data(stacked)
+       .join('rect')
+       .attr('class', 'risk1')
+       .attr('x', d => x(d.bin.x0))
+       .attr('y', d => y(d.risk0 + d.risk1))
+       .attr('width', d => barWidth(d.bin))
+       .attr('height', d => y(d.risk0) - y(d.risk0 + d.risk1))
+       .attr('fill', '#e15759');
+
+
+   // Add total count labels on top of each bar
+   g.selectAll('text.bin-label')
+       .data(stacked)
+       .join('text')
+       .attr('class', 'bin-label')
+       .attr('x', d => x(d.bin.x0) + barWidth(d.bin) / 2)
+       .attr('y', d => y(d.risk0 + d.risk1) - 5)
+       .attr('text-anchor', 'middle')
+       .attr('font-size', 11)
+       .attr('font-weight', 'bold')
+       .text(d => d.risk0 + d.risk1);
+
+
+   // Axis labels
+   histSvg.append('text')
+       .attr('x', margin.left + innerWidth / 2)
+       .attr('y', histHeight - 6)
+       .attr('text-anchor', 'middle')
+       .attr('font-size', 14)
+       .text('Age');
+
+
+   histSvg.append('text')
+       .attr('transform', 'rotate(-90)')
+       .attr('x', -(margin.top + innerHeight / 2))
+       .attr('y', 15)
+       .attr('text-anchor', 'middle')
+       .attr('font-size', 14)
+       .text('Number of People');
+
+
+   // Legend
+   const legend = histSvg.append('g')
+       .attr('transform', `translate(${histWidth - 170}, 10)`);
+   // Legend background
+   const legendItems = [
+       { label: 'Low Risk of Chronic Disease', color: '#59a14f' },
+       { label: 'High Risk of Chronic Disease', color: '#e15759' }
+   ];
+   legend.selectAll('rect')
+       .data(legendItems)
+       .join('rect')
+       .attr('x', 0)
+       .attr('y', (d, i) => i * 20)
+       .attr('width', 14)
+       .attr('height', 14)
+       .attr('fill', d => d.color);
+   legend.selectAll('text')
+       .data(legendItems)
+       .join('text')
+       .attr('x', 20)
+       .attr('y', (d, i) => i * 20 + 12)
+       .attr('font-size', 12)
+       .text(d => d.label);
+}
+
