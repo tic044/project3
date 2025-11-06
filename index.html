@@ -1,14 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script type="module" src="main.js"></script>
-    <title>Project 3</title>
+  <meta charset="utf-8" />
+  <title>Project 3 — Interactive Visualization</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- We set a tiny, neutral CSS baseline.
+       We let D3 draw the actual UI (sliders, theme switch, chart) in SVG. -->
+  <style>
+    :root {
+      --panel-bg: #f7f8fa;
+      --panel-bd: #e6e8ee;
+      --fg: #0c0d10;
+      --muted: #60646c;
+    }
+
+    /* We unify fonts for the whole page and inherit color from the body. */
+    body, text, button, input, label {
+      font-family: Inter, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      font-weight: 400;
+      color: var(--fg);
+      margin: 0;
+    }
+
+    /* We give the header a little breathing room. */
+    header { padding: 16px; }
+    h1 { margin: 0 0 4px 0; font-size: 18px; }
+    p.sub { margin: 0; color: var(--muted); font-size: 13px; }
+
+    /* We center the app and set a readable width. */
+    #app { max-width: 860px; margin: 0 16px 48px; }
+
+    /* We keep a small gap around the controls block.
+       The visible panel background is drawn by D3 inside the SVG. */
+    .panel { margin: 12px 0 8px; }
+
+    /* We give the two mount points full width; D3 will size the SVGs. */
+    #controls, #data { width: 100%; }
+  </style>
 </head>
 <body>
-    <h1>Project 3</h1>
+  <!-- We show a simple title and a short subtitle. -->
+  <header>
+    <h1>Project 3 — Interactive Visualization</h1>
+    <p class="sub">We use D3-only sliders + a theme switch to drive a stacked age histogram</p>
+  </header>
+
+  <!-- We mount two sections:
+       1) #controls: D3 draws one SVG with both sliders + theme switch.
+       2) #data: D3 draws the stacked histogram SVG. -->
+  <div id="app">
+    <div id="controls" class="panel"></div>
     <div id="data"></div>
-    <!-- <div id="histogram"></div> -->
+  </div>
+
+  <!-- We load the D3 app that builds controls and chart. -->
+  <script type="module" src="main.js"></script>
 </body>
 </html>
