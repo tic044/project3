@@ -29,6 +29,18 @@ const svg = d3.select('#data')
    .attr('width', 800)
    .attr('height', 640)
 
+const tooltip = d3.select('body')
+    .append('div')
+    .attr('class', 'tooltip')
+    .attr('visibility', 'hidden')
+    .style('position', 'absolute')
+    .style('background-color', 'white')
+    .style('padding', '10px')
+    .style('border', '1px solid black')
+    .style('border-radius', '5px')
+    .style('pointer-events', 'none');
+
+
 
 const rowsWithAge = data
    .map(d => ({ ...d, ageNum: +d.age }))
@@ -95,27 +107,52 @@ if (rowsWithAge.length === 0) {
 
    // Bottom segment: disease_risk = 0
    g.selectAll('rect.risk0')
-       .data(stacked)
-       .join('rect')
-       .attr('class', 'risk0')
-       .attr('x', d => x(d.bin.x0))
-       .attr('y', d => y(d.risk0))
-       .attr('width', d => barWidth(d.bin))
-       .attr('height', d => y(0) - y(d.risk0))
-       .attr('fill', '#59a14f');
-
+        .data(stacked)
+        .join('rect')
+        .attr('class', 'risk0')
+        .attr('x', d => x(d.bin.x0))
+        .attr('y', d => y(d.risk0))
+        .attr('width', d => barWidth(d.bin))
+        .attr('height', d => y(0) - y(d.risk0))
+        .attr('fill', '#59a14f')
+        .on('mouseover', (event, d) => {
+            tooltip.style('visibility', 'visible')
+            .style('left', event.pageX + 'px')
+            .style('top', event.pageY + 'px')
+            .html(`<b>Range:</b> ${d.bin.x0} - ${d.bin.x1}<br><b>Low Risk of Chronic Disease:</b> ${d.risk0}<br><b>High Risk of Chronic Disease:</b> ${d.risk1}`);
+        })
+        .on('mousemove', (event) => {
+            tooltip.style('left', event.pageX + 10 + 'px')
+            .style('top', event.pageY + 10 + 'px');
+        })
+        .on('mouseout', () => {
+            tooltip.style('visibility', 'hidden');
+        });
 
    // Top segment: disease_risk = 1
    g.selectAll('rect.risk1')
-       .data(stacked)
-       .join('rect')
-       .attr('class', 'risk1')
-       .attr('x', d => x(d.bin.x0))
-       .attr('y', d => y(d.risk0 + d.risk1))
-       .attr('width', d => barWidth(d.bin))
-       .attr('height', d => y(d.risk0) - y(d.risk0 + d.risk1))
-       .attr('fill', '#e15759');
-
+        .data(stacked)
+        .join('rect')
+        .attr('class', 'risk1')
+        .attr('x', d => x(d.bin.x0))
+        .attr('y', d => y(d.risk0 + d.risk1))
+        .attr('width', d => barWidth(d.bin))
+        .attr('height', d => y(d.risk0) - y(d.risk0 + d.risk1))
+        .attr('fill', '#e15759')
+        .on('mouseover', (event, d) => {
+          console.log('mouseover', d.risk1);
+            tooltip.style('visibility', 'visible')
+            .style('left', event.pageX + 'px')
+            .style('top', event.pageY + 'px')
+            .html(`<b>Range:</b> ${d.bin.x0} - ${d.bin.x1}<br><b>Low Risk of Chronic Disease:</b> ${d.risk0}<br><b>High Risk of Chronic Disease:</b> ${d.risk1}`);
+        })
+        .on('mousemove', (event) => {
+            tooltip.style('left', event.pageX + 10 + 'px')
+            .style('top', event.pageY + 10 + 'px');
+        })
+        .on('mouseout', () => {
+            tooltip.style('visibility', 'hidden');
+        });
 
    // Add total count labels on top of each bar
    g.selectAll('text.bin-label')
@@ -293,7 +330,20 @@ if (Array.isArray(data) && data.length) {
           .attr('y', d => y(d.risk0))
           .attr('width', d => barWidth(d.bin))
           .attr('height', d => y(0) - y(d.risk0))
-          .attr('fill', '#59a14f');
+          .attr('fill', '#59a14f')
+          .on('mouseover', (event, d) => {
+            tooltip.style('visibility', 'visible')
+              .style('left', event.pageX + 'px')
+              .style('top', event.pageY + 'px')
+              .html(`<b>Range:</b> ${d.bin.x0} - ${d.bin.x1}<br><b>Low Risk of Chronic Disease:</b> ${d.risk0}<br><b>High Risk of Chronic Disease:</b> ${d.risk1}`);
+          })
+          .on('mousemove', (event) => {
+            tooltip.style('left', event.pageX + 10 + 'px')
+              .style('top', event.pageY + 10 + 'px');
+          })
+          .on('mouseout', () => {
+            tooltip.style('visibility', 'hidden');
+          });
 
         // high risk
         g.selectAll('rect.risk1')
@@ -304,7 +354,20 @@ if (Array.isArray(data) && data.length) {
           .attr('y', d => y(d.risk0 + d.risk1))
           .attr('width', d => barWidth(d.bin))
           .attr('height', d => y(d.risk0) - y(d.risk0 + d.risk1))
-          .attr('fill', '#e15759');
+          .attr('fill', '#e15759')
+          .on('mouseover', (event, d) => {
+            tooltip.style('visibility', 'visible')
+              .style('left', event.pageX + 'px')
+              .style('top', event.pageY + 'px')
+              .html(`<b>Range:</b> ${d.bin.x0} - ${d.bin.x1}<br><b>Low Risk of Chronic Disease:</b> ${d.risk0}<br><b>High Risk of Chronic Disease:</b> ${d.risk1}`);
+          })
+          .on('mousemove', (event) => {
+            tooltip.style('left', event.pageX + 10 + 'px')
+              .style('top', event.pageY + 10 + 'px');
+          })
+          .on('mouseout', () => {
+            tooltip.style('visibility', 'hidden');
+          });
 
         // labels
         g.selectAll('text.bin-label')
