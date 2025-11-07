@@ -1,34 +1,218 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script type="module" src="main.js"></script>
-    <title>Project 3</title>
+  <meta charset="UTF-8" />
+  <title>Bad Lifestyle Habits Don't Kill You</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root{
+      /* We keep a single source of truth for the sidebar width so layout math stays stable. */
+      --sidebar-w: 440px;
+      --fg: #0c0d10;
+      --muted:#60646c;
+      --panel-bg:#f7f8fa;
+      --panel-border:#e6e8ee;
+      --button-bg:#e8ebf0;
+      --button-bg-hover:#d7dce2;
+      --writeup-max: 1290px;  /* We cap the prose width because long lines hurt readability. */
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+      color:var(--fg);
+      background:#fff;
+      overflow-y:auto;
+    }
+
+    /* We separate the page title to give the chart breathing room. */
+    header{padding:16px 24px 0 24px}
+    h1{margin:0;font-size:26px;line-height:1.3}
+    p.sub{margin:4px 0 20px 0;color:var(--muted);font-size:15px}
+
+    /* We use a two-column flex layout because it keeps the chart and controls aligned. */
+    #layout{
+      display:flex;
+      flex-direction:row;
+      align-items:flex-start;
+      gap:18px;
+      padding:16px 16px 16px 16px;
+    }
+    #data{flex:3;min-width:58%;overflow-x:auto}
+
+    /* We wrap every control in a single panel because one border is cleaner than many. */
+    #sidebar{
+      flex:0 0 var(--sidebar-w);
+      max-width:calc(var(--sidebar-w) + 20px);
+      background:var(--panel-bg);
+      border:1px solid var(--panel-border);
+      border-radius:12px;
+      padding:20px 60px 20px 20px;
+      margin-right: 40px;   /* We add a small gutter so the write-up never touches the panel. */
+      position:sticky;      /* We pin the panel because scannability improves when controls stay put. */
+      top:10px;
+      color:inherit;
+      /* We allow visible overflow because we show the instructions as an overlay popover. */
+      overflow:visible;
+    }
+
+    /* We reserve a known mount point for sliders because main.js draws SVGs here. */
+    #controls{width:100%}
+
+    /* We size the buttons to 60% because full width felt heavy and variable width shifted layout. */
+    #toggleTheme,
+    .collapsible{
+      width:60%;
+      margin-top:14px;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid var(--panel-border);
+      background:var(--button-bg);
+      font-weight:600;
+      font-size:13px;
+      cursor:pointer;
+      text-align:center;    /* We center labels because these are short, single-purpose actions. */
+    }
+    #toggleTheme:hover,
+    .collapsible:hover{background:var(--button-bg-hover)}
+
+    /* We render the help text as an overlay because expanding content below it pushed the write-up. */
+    .content{
+      position:absolute;     /* We anchor inside the sidebar so the popover follows the panel. */
+      left:18px; right:18px;
+      /* We set vertical position in JS so the popover always hugs the trigger button. */
+      display:none;
+      z-index:10;
+      max-height:300px;
+      overflow:auto;         /* We scroll long help copy rather than push the layout. */
+      padding:12px 14px;
+      border:1px solid inherit;  /* We mirror sidebar colors so light/dark themes stay consistent. */
+      border-radius:10px;
+      background:inherit;
+      color:inherit;
+      box-shadow:0 12px 28px rgba(0,0,0,.25);
+      font-size:13px; line-height:1.45;
+    }
+    .content.open{display:block}
+
+    /* We use a simple, unobtrusive tooltip because numbers are the focus. */
+    .tooltip{
+      position:absolute;
+      visibility:hidden;
+      pointer-events:none;
+      padding:10px;
+      border:1px solid;
+      border-radius:8px;
+      font-size:12px;
+      background:#fff;
+    }
+    .tooltip .tip-title{font-weight:600;margin-bottom:6px}
+    .tooltip hr{border:0;border-top:1px solid currentColor;opacity:.25;margin:6px 0}
+
+    /* We keep the write-up left-aligned with the chart and out from under the sidebar because that
+       preserves a clean reading column while the panel stays sticky. */
+    #writeup{
+      margin: 20px calc(var(--sidebar-w) + 32px) 40px 24px; /* We offset by sidebar width so text never hides under it. */
+      max-width: 1290px; /* We cap the line length because ~70–90 characters reads best. */
+      line-height: 1.5;
+      color: inherit;
+    }
+    #writeup h2{margin:0 0 10px 0;font-size:20px}
+    #writeup p{margin:10px 0}
+
+    /* Let chart + sidebar wrap when there isn’t enough width */
+#layout { flex-wrap: wrap; }
+
+/* Make the data area flex properly instead of fixed min-width */
+#data { flex: 1 1 600px; min-width: 0; }
+
+/* Phone / small laptop tweaks */
+@media (max-width: 1100px) {
+  :root { --sidebar-w: 100%; }              /* sidebar spans full width */
+  #sidebar {
+    flex-basis: 100%;
+    max-width: 100%;
+    margin-right: 0;
+  }
+  #toggleTheme, .collapsible { width: 100%; }/* buttons fill row nicely */
+  #writeup {                                 /* prose doesn’t reserve sidebar gap */
+    margin: 20px 24px 40px 24px;
+    max-width: 100%;
+  }
+}
+
+  </style>
 </head>
+
 <body>
-    <h1>Project 3</h1>
-    <div id="controls">
-      <p><strong>Filter by sleep hours and daily steps</strong></p>
-    
-      <label>
-        Sleep hours:
-        <span id="sleep-label"></span><br>
-        <input id="sleep-min" type="range">
-        <input id="sleep-max" type="range">
-      </label>
-    
-      <br><br>
-    
-      <label>
-        Daily steps:
-        <span id="steps-label"></span><br>
-        <input id="steps-min" type="range">
-        <input id="steps-max" type="range">
-      </label>
-    </div>
-    
+  <header>
+    <h1>Lifestyle Choices and Disease Risk: A Paradox in the Data</h1>
+    <p class="sub">Exploring the surprising lack of correlation between lifestyle factors and chronic disease risk across 100,000 individuals</p>
+  </header>
+
+  <div id="layout">
+    <!-- We dedicate a container for the chart because D3 controls its exact sizing. -->
     <div id="data"></div>
-    
+
+    <!-- We keep all controls in one semantic <aside> because they supplement the main visual. -->
+    <aside id="sidebar">
+      <div id="controls"></div>
+
+      <!-- We expose dark-mode as a single button because the theme is global, not per-widget. -->
+      <button id="toggleTheme" type="button">Toggle Dark Mode</button>
+
+      <!-- We label the help button plainly because users look for verbs like “How to…”. -->
+      <button class="collapsible" type="button">How to Use Visual</button>
+      <div class="content" id="helper-content">
+        <strong>Interact with the data to test your assumptions about lifestyle and health:</strong><br><br>
+        <b>Age Selection:</b> Click and drag on the x-axis to brush-select a specific age range. The visualization will dynamically adjust to show more detailed age bins as you zoom in.<br><br>
+        <b>Lifestyle Filters:</b> Use the three-point sliders to show only drinkers, only non-drinkers, or all individuals (and similarly for smokers vs. non-smokers).<br><br>
+        <b>Sleep & Steps:</b> Adjust the dual-handle range sliders to filter by hours of sleep per night (3–10 hours) or daily step count (1,000–20,000 steps).<br><br>
+        <b>View Details:</b> Hover over any bar to see the exact count of low-risk (green) and high-risk (red) individuals in that age group.<br><br>
+        <b>Dark Mode:</b> Toggle between light and dark modes for comfortable viewing.<br><br>
+        Apply any combination of filters to explore the data. Despite what you might expect, the 75:25 ratio of low-risk to high-risk individuals remains remarkably consistent across all lifestyle factors.
+      </div>
+    </aside>
+  </div>
+
+  <!-- We place the long-form explanation after the visual because readers scan the picture first. -->
+  <section id="writeup">
+    <h2><p><strong>Authors:</strong> Tristan Roman, Timothy Chang, David Lightfoot, and Julian Estrada</p></h2>
+
+    <p>We first chose this dataset of 100,000 individuals because of the opportunity to explore whether lifestyle choices such as drinking or smoking are correlated with an individual's susceptibility to chronic diseases like diabetes, heart disease, hypertension, and cancer. Since age could also potentially be a factor in one's likelihood to be affected by the aforementioned diseases, we decided to first sort the data into five-year age bins and display it in a stacked histogram. We then made several exploratory visualizations on some of the features in the dataset such as whether individuals smoked, drink alcohol, how much sleep they got, or how many steps they took per day. The data revealed a surprising correlation–absolutely none! The proportions remained at approximately 75% low-risk and 25% high-risk across all lifestyle factors. Regardless of how we aggregated, sorted, or grouped the data, we could not find any significant difference in the proportions of individuals. As such, our interactive visualization is meant to show the viewer that their lifestyle choices do not lead to increased risk of disease in this dataset, no matter how poor their choices may be.</p>
+
+    <p>For our visual encodings, we used a stacked histogram with age bins on the x-axis spanning ages 15-80 and count on the y-axis. Each bin displays a stacked bar with green representing low-risk individuals and red representing high-risk individuals. We chose stacked bars over grouped (side-by-side) bars because they make the total sample size in each age bin immediately visible while still clearly showing the consistent 75:25 low-risk to high-risk ratio across all bins. This visual consistency reinforces our key finding that the ratio doesn't change regardless of filters. We use the position channel to encode count (bar height) and the color channel to encode disease risk level, which are both highly effective perceptual channels. Initially, we binned age into five-year intervals for the default view to provide a clear overview, but when users apply the brush-select tool to zoom into specific age ranges, the visualization dynamically adjusts to show more granular bins, eventually displaying individual ages rather than age ranges when zoomed in sufficiently. This adaptive binning strategy balances the need for a readable overview with the ability to examine detailed age-specific patterns. We also implemented a dark mode toggle to improve accessibility and reduce eye strain, maintaining clear contrast between the green and red categories in both color schemes.</p>
+
+    <p>In order to demonstrate the lack of correlation, we picked several features that are commonly associated with good or bad lifestyles, such as whether or not an individual drinks or smokes and how much sleep they get per night or how many steps they take per day. For the data transformations, we implemented multiple filters that apply simultaneously and combine their effects: age filtering via brush selection that narrows the displayed age range, binary filters for alcohol and smoking, and range filters for daily steps (1,000-20,000) and sleep hours (3-10 hours). When any combination of filters is applied, the histogram recalculates and displays only the subset of data matching all active criteria–for example, selecting show only smokers, setting sleep to 6-8 hours, and brushing ages 40-60 will display only individuals meeting all three conditions. The visualization's subtitle dynamically updates to clearly indicate which filters are currently active, ensuring viewers always understand what transformations have been applied to the data they're seeing.</p>
+
+    <p>We initially considered a library of toggles which would enable or disable binary features to show the lack of difference between the proportions of low and high-risk data points, but eventually decided to move forward with three-point sliders to allow users to not only show or hide groups but also view all the data simultaneously for direct comparison. This provides more flexibility than simple toggles and maintains visual consistency with our other slider-based controls. We debated over what interaction to use for our quantitative variables and decided that dual-handle range sliders would be more intuitive and appropriate for readers since steps and sleep showed wide distributions in the dataset (steps ranging from 1,000-20,000 and sleep from 3-10 hours). Since age was already measured on our x-axis, we elected to use a brush-select directly on the x-axis to allow users to filter by age range. This makes the connection between the control and visual element more intuitive than an external slider would have been. Lastly, we added a tooltip that appears on hover to expose the exact raw numbers of low-risk and high-risk individuals in each bin for viewers to see, which is especially useful when multiple filters have narrowed down the sample size and visual comparison of proportions becomes more difficult.
+    The goal of our interaction design was to enable viewers to actively test their own hypotheses about lifestyle factors and disease risk. By providing multiple independent filters, users can isolate smokers, focus on people who sleep 6-8 hours, examine only 40-60 year olds, and consistently observe that the proportions remain stable at approximately 75:25. The dynamic updating of a single histogram is more effective for demonstrating that nothing changes than showing multiple static comparison charts side-by-side, which would require tedious visual comparison across separate visualizations.</p>
+
+    <p>Each team member picked features that they were interested in implementing. Tristan and David tackled the three-point sliders for alcohol use and smoking as well as the dark mode functionality and color scheme design. Julian created the dual-handle range sliders for sleep hours and daily steps. Tim made the interactive tooltip and implemented the brush-select for age filtering. Our interactive visualization was created over the course of about four hours of meetings and work sessions plus three to four hours per person working on their own, researching D3 documentation/examples and debugging their individual implementations. Despite the relatively long individual development periods, the task that took the longest was making sure the different types of sliders and the brush-select functioned well with each other, and making sure the tooltip dynamically updated with each filter applied. This coordination task by itself took almost six hours since each person initially implemented the histogram drawing function differently, which caused conflicts when multiple filters were applied simultaneously. One filter would override another or the visualization would display stale data. We eventually refactored our code to track which filters were active and ensure all visual elements updated consistently together.</p>
+  </section>
+
+  <!-- We keep main.js separate so the DOM/template stays stable while we iterate on logic. -->
+  <script type="module" src="main.js"></script>
+
+  <!-- We position the instructions popover in JS because it must track the button’s live position. -->
+  <script>
+    const sidebar = document.getElementById('sidebar');
+    const collBtn  = document.querySelector('.collapsible');
+    const content  = document.getElementById('helper-content');
+
+    function placePopover(){
+      /* We compute the popover’s top each time because button size/position can shift on resize. */
+      const top = collBtn.offsetTop + collBtn.offsetHeight + 8; // we keep an 8px visual gap
+      content.style.top = top + 'px';
+    }
+    placePopover();
+    addEventListener('resize', placePopover);
+
+    /* We only toggle a class because CSS handles visibility and theming more reliably than JS inline styles. */
+    collBtn.addEventListener('click', () => {
+      placePopover();
+      content.classList.toggle('open');
+    });
+  </script>
 </body>
 </html>
